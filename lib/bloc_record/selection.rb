@@ -149,11 +149,17 @@ module Selection
   end
 
   def order(*args)
-    if args.count > 1
-      order = args.join(",")
-    else
-      order = args.first.to_s
+    temp_array = []
+    args.each do |arg|
+      case arg
+      when String
+        temp_array << arg
+      when Hash
+        temp_array << arg.map{ |key, value| "#{key} #{value}" }
+      end
     end
+
+    order = temp_array.join(",")
 
     rows = connection.execute <<-SQL
       SELECT * FROM #{table}
@@ -166,14 +172,26 @@ module Selection
     if arg.count > 1
       joins = args.map { |arg| "INNER JOIN #{arg} ON #{arg}.#{table}_id = #{table}.id"}.join(" ")
       rows = connection.execute <<-SQL
-        SELECT * FROM #{table} #{joins}
+        SELECT * FROM #{table} #{joins};
       SQL
     else
       case args.first
       when String
         rows = connection.execute <<-SQL
+          SELECT * FROM #{table} #{BlocRecord::Utility.sql_strings(args.first)};
+        SQL
+      when Symbol
+        rows = connection.execute <<-SQL
           SELECT * FROM #{table}
-          INNER JOIN #{args.first} ON #{args.first}.#{table}_id = #{table}.id
+          INNER JOIN #{args.first} ON #{args.first}.#{table}_id = #{table}.id;
+        SQL
+      when Hash
+        key = args.first.keys.first
+        value = args.first[key]
+        rows = connection.execute <<-SQL
+          SELECT * FROM #{table}
+          INNER JOIN #{key} on #{key}.#{table}.id = #{table}.id
+          INNER JOIN #{value} on #{value}.#{key}_id = #{key}.id;
         SQL
       end
     end
