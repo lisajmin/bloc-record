@@ -59,12 +59,22 @@ module Selection
     start = options[:start] || 0
     batch_size = options[:batch_size] || 1000
 
+    size_of_db = connection.execute <<-SQL
+      SELECT COUNT(*) FROM #{table};
+    SQL
+
     rows = connection.execute <<-SQL
       SELECT #{columns.join ","} FROM #{table}
       LIMIT #{batch_size} OFFSET #{start};
     SQL
 
     yield(rows_to_array(rows))
+
+    if (start + batch_size) < size_of_db
+      find_in_batches((start+batch_size), batch_size)
+    elsif start < size_of_db
+      find_in_batches(start)
+    end
   end
 
   def method_missing(m, *args)
@@ -155,7 +165,7 @@ module Selection
       when String
         temp_array << arg
       when Hash
-        temp_array << arg.map{ |key, value| "#{key} #{value}" }
+        temp_array << arg.map{ |key, value| if value then "#{key} #{value}" else "#{key}" end }
       end
     end
 
