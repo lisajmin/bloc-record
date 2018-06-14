@@ -36,6 +36,12 @@ module Persistence
     self.class.update(self.id, updates)
   end
 
+  def method_missing(m, *args)
+    attribute = m.to_s
+    attribute.slice!("update_")
+    update_attribute(attribute, args[0])
+  end
+
   module ClassMethods
     def create(attrs)
       attrs = BlocRecord::Utility.convert_keys(attrs)
@@ -53,9 +59,13 @@ module Persistence
     end
 
     def update(ids, updates)
+      if ids.class == Array && updates.class == Array
+        ids.each_with_index { |val, index| update(val, updates(index)) }
+        true
+      end
+
       updates = BlocRecord::Utility.convert_keys(updates)
       updates.delete "id"
-
       updates_array = updates.map { |key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}" }
 
       if ids.class == Fixnum

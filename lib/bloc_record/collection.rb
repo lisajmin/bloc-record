@@ -4,5 +4,23 @@ module BlocRecord
       ids = self.map(&:id)
       self.any? ? self.first.class.update(ids, updates) : false
     end
+
+    def take(num=1)
+      if num > 1
+        self[0..(num-1)]
+      else
+        self.first
+      end
+    end
+
+    def where(arg)
+      target_key = arg.keys[0]
+      self.select { |obj| obj[target_key] == arg[target_key] }
+    end
+
+    def not(arg)
+      target_key = arg.keys[0]
+      self.select { |obj| obj[target_key] != arg[target_key] }
+    end
   end
 end
