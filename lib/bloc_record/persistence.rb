@@ -1,4 +1,5 @@
 require 'sqlite3'
+require 'pg'
 require 'bloc_record/schema'
 
 module Persistence
@@ -116,7 +117,7 @@ module Persistence
         elsif conditions_hash.class == Array
           conditions = conditions_hash.join(",")
         end
-        
+
         connection.execute <<-SQL
           DELETE FROM #{table}
           WHERE #{conditions};
